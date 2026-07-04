@@ -10,7 +10,8 @@
     "db:setup": "node scripts/db-setup.mjs",
     "ingest:mvum": "node scripts/ingest-mvum.mjs",
     "ingest:osm": "node scripts/ingest-osm.mjs",
-    "merge:sources": "node scripts/merge-osm-into-mvum.mjs"
+    "merge:sources": "node scripts/merge-osm-into-mvum.mjs",
+    "compute:difficulty": "node scripts/compute-difficulty.mjs"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

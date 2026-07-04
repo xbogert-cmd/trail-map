@@ -31,7 +31,11 @@
       "Bash(nc -z -w 5 db.cwmbtqfcqurwmlyovzgd.supabase.co 5432)",
       "Bash(pkill -f ingest-osm.mjs)",
       "Bash(git commit -m 'Batch OSM inserts \\(200 rows/statement\\) for ~20x ingestion throughput *)",
-      "Bash(git commit -m 'Use indexed geometry prefilter in source-merge spatial join *)"
+      "Bash(git commit -m 'Use indexed geometry prefilter in source-merge spatial join *)",
+      "Bash(curl -s \"http://localhost:3000/api/trails?bbox=-82.9,35.2,-82.5,35.5&zoom=11\")",
+      "Bash(curl -s \"http://localhost:3000\")",
+      "Bash(curl -s \"http://localhost:3000/api/trails?bbox=-82.6,35.4,-82.5,35.5&zoom=10\")",
+      "Bash(git commit -m 'Phase 3: trail rendering, surface styling, legend, click popups *)"
     ]
   }
 }

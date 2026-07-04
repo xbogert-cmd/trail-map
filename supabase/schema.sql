@@ -97,3 +97,63 @@ create policy "public read trails" on trails for select using (true);
 drop policy if exists "public read scenic_roads" on scenic_roads;
 create policy "public read scenic_roads" on scenic_roads for select using (true);
 -- ingest_progress: no policies -> not readable/writable via the public API
+
+-- ---------------------------------------------------------------------------
+-- trails_in_bbox: everything the map needs for the current viewport, as one
+-- GeoJSON FeatureCollection. Called by the Next.js /api/trails route.
+--  * low zoom shows only MVUM routes (drawing all 110k OSM ways would melt
+--    the browser); more detail appears as you zoom in
+--  * geometries are simplified harder at low zoom
+-- ---------------------------------------------------------------------------
+create or replace function trails_in_bbox(
+  min_lon double precision,
+  min_lat double precision,
+  max_lon double precision,
+  max_lat double precision,
+  zoom integer
+) returns jsonb
+language sql stable parallel safe
+as $$
+  with candidates as (
+    select id, name, source, highway, surface, tracktype, difficulty,
+           length_mi, permit_required, seasonal,
+           case
+             when zoom < 9  then st_simplify(geom, 0.001)
+             when zoom < 12 then st_simplify(geom, 0.0002)
+             else geom
+           end as g
+    from trails
+    where not hidden
+      and geom && st_makeenvelope(min_lon, min_lat, max_lon, max_lat, 4326)
+      and (
+        zoom >= 11
+        or (zoom >= 9 and (source = 'mvum' or highway = 'track'))
+        or source = 'mvum'
+      )
+    order by (source = 'mvum') desc, length_mi desc nulls last
+    limit 6000
+  )
+  select jsonb_build_object(
+    'type', 'FeatureCollection',
+    'features', coalesce(jsonb_agg(
+      jsonb_build_object(
+        'type', 'Feature',
+        'id', id,
+        'geometry', st_asgeojson(g, 5)::jsonb,
+        'properties', jsonb_build_object(
+          'id', id,
+          'name', name,
+          'source', source,
+          'highway', highway,
+          'surface', surface,
+          'tracktype', tracktype,
+          'difficulty', difficulty,
+          'length_mi', round(length_mi::numeric, 1),
+          'permit_required', permit_required,
+          'seasonal', seasonal
+        )
+      )), '[]'::jsonb)
+  )
+  from candidates
+  where g is not null and not st_isempty(g);
+$$;
