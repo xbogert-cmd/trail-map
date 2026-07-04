@@ -25,7 +25,12 @@
       "Bash(curl -sv --max-time 60 -X POST \"https://overpass-api.de/api/interpreter\" --data-urlencode 'data=[out:json][timeout:30];\\(way[\"highway\"=\"track\"]\\(35.4,-82.9,35.5,-82.8\\);\\);out count;')",
       "Bash(curl -s --max-time 60 -A \"trailmap-ingest/1.0 \\(xbogert@icloud.com\\)\" -X POST \"https://overpass-api.de/api/interpreter\" --data-urlencode 'data=[out:json][timeout:30];\\(way[\"highway\"=\"track\"]\\(35.4,-82.9,35.5,-82.8\\);\\);out count;')",
       "Bash(node -e ' *)",
-      "Bash(git commit -m 'Phase 2 scaffolding: PostGIS schema and tiled resumable ingestion scripts *)"
+      "Bash(git commit -m 'Phase 2 scaffolding: PostGIS schema and tiled resumable ingestion scripts *)",
+      "Bash(dig +short db.cwmbtqfcqurwmlyovzgd.supabase.co A)",
+      "Bash(dig +short db.cwmbtqfcqurwmlyovzgd.supabase.co AAAA)",
+      "Bash(nc -z -w 5 db.cwmbtqfcqurwmlyovzgd.supabase.co 5432)",
+      "Bash(pkill -f ingest-osm.mjs)",
+      "Bash(git commit -m 'Batch OSM inserts \\(200 rows/statement\\) for ~20x ingestion throughput *)"
     ]
   }
 }

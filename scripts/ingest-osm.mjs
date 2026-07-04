@@ -46,25 +46,30 @@ async function fetchTile(tile) {
   );
 }
 
+// Insert in batches: one round-trip per BATCH rows instead of per row.
+const BATCH = 200;
+
 async function insertWays(ways) {
   let inserted = 0;
-  for (const way of ways) {
-    const t = way.tags ?? {};
-    const coords = way.geometry.map((pt) => [pt.lon, pt.lat]);
-    const geojson = { type: "LineString", coordinates: coords };
-    const res = await pool.query(
-      `insert into trails
-         (source, osm_id, name, highway, surface, tracktype, smoothness,
-          access, fourwd_only, attrs, geom, length_mi)
-       values
-         ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+  for (let start = 0; start < ways.length; start += BATCH) {
+    const chunk = ways.slice(start, start + BATCH);
+    const values = [];
+    const params = [];
+    for (const way of chunk) {
+      const t = way.tags ?? {};
+      const geojson = {
+        type: "LineString",
+        coordinates: way.geometry.map((pt) => [pt.lon, pt.lat]),
+      };
+      const b = params.length; // parameter base index for this row
+      values.push(
+        `('osm', $${b + 1}, $${b + 2}, $${b + 3}, $${b + 4}, $${b + 5}, $${b + 6},
+          $${b + 7}, $${b + 8}, $${b + 9},
           st_multi(st_simplifypreservetopology(
-            st_setsrid(st_geomfromgeojson($11), 4326), $12)),
-          st_length(st_setsrid(st_geomfromgeojson($11), 4326)::geography) / 1609.344)
-       on conflict (osm_id) where osm_id is not null
-       do nothing`,
-      [
-        "osm",
+            st_setsrid(st_geomfromgeojson($${b + 10}), 4326), ${SIMPLIFY_TOLERANCE})),
+          st_length(st_setsrid(st_geomfromgeojson($${b + 10}), 4326)::geography) / 1609.344)`
+      );
+      params.push(
         way.id,
         t.name ?? null,
         t.highway ?? null,
@@ -74,9 +79,17 @@ async function insertWays(ways) {
         t.access ?? null,
         t["4wd_only"] === "yes",
         JSON.stringify(t),
-        JSON.stringify(geojson),
-        SIMPLIFY_TOLERANCE,
-      ]
+        JSON.stringify(geojson)
+      );
+    }
+    const res = await pool.query(
+      `insert into trails
+         (source, osm_id, name, highway, surface, tracktype, smoothness,
+          access, fourwd_only, attrs, geom, length_mi)
+       values ${values.join(",")}
+       on conflict (osm_id) where osm_id is not null
+       do nothing`,
+      params
     );
     inserted += res.rowCount;
   }
