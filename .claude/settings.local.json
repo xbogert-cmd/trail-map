@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npx --yes create-next-app@latest trailmap-scaffold --ts --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --use-npm --no-turbopack --disable-git)",
+      "Bash(rsync -a /private/tmp/claude-501/-Users-alexanderbogert-trailmap/1832ab44-e8fe-4d4f-91ae-b5955a2c3bcf/scratchpad/trailmap-scaffold/ /Users/alexanderbogert/trailmap/)",
+      "Bash(npm install *)",
+      "Bash(sed -i '' 's/\"name\": \"trailmap-scaffold\"/\"name\": \"trailmap\"/' package.json)",
+      "Bash(npm run *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m 'Phase 1: Next.js scaffold with MapLibre map, base layers, 3D terrain toggle *)"
+    ]
+  }
+}
