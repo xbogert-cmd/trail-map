@@ -50,6 +50,13 @@ export default function Legend() {
             ))}
           </ul>
 
+          <li className="mt-1.5 flex items-center gap-2.5 text-sm text-slate-200">
+            <span
+              className="h-1.5 w-8 shrink-0 rounded bg-red-400"
+              style={{ boxShadow: "0 0 6px 2px rgba(239,68,68,.6)" }}
+            />
+            Scenic paved drive
+          </li>
           <p className="mt-3 text-xs text-slate-400">
             Solid lines are USFS MVUM-designated routes. Faded lines are from
             OpenStreetMap and may not be legally open — verify before riding.

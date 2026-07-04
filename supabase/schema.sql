@@ -157,3 +157,114 @@ as $$
   from candidates
   where g is not null and not st_isempty(g);
 $$;
+
+-- ---------------------------------------------------------------------------
+-- trail_detail: everything the detail panel needs for one trail,
+-- geometry included (full resolution) so the elevation profile is accurate
+-- ---------------------------------------------------------------------------
+create or replace function trail_detail(trail_id uuid)
+returns jsonb
+language sql stable parallel safe
+as $$
+  select jsonb_build_object(
+    'id', id,
+    'name', name,
+    'source', source,
+    'route_id', route_id,
+    'highway', highway,
+    'surface', surface,
+    'tracktype', tracktype,
+    'smoothness', smoothness,
+    'access', access,
+    'fourwd_only', fourwd_only,
+    'vehicle_classes', vehicle_classes,
+    'seasonal', seasonal,
+    'season_dates', season_dates,
+    'permit_required', permit_required,
+    'length_mi', round(length_mi::numeric, 1),
+    'difficulty', difficulty,
+    'difficulty_inputs', difficulty_inputs,
+    'geometry', st_asgeojson(st_linemerge(geom), 6)::jsonb,
+    'start_point', jsonb_build_array(st_x(st_startpoint(st_geometryn(geom, 1))),
+                                     st_y(st_startpoint(st_geometryn(geom, 1)))),
+    'end_point', jsonb_build_array(st_x(st_endpoint(st_geometryn(geom, st_numgeometries(geom)))),
+                                   st_y(st_endpoint(st_geometryn(geom, st_numgeometries(geom)))))
+  )
+  from trails where id = trail_id;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- scenic_detail + scenic_roads_geojson: the curated paved drives layer
+-- ---------------------------------------------------------------------------
+create or replace function scenic_detail(road_id uuid)
+returns jsonb
+language sql stable parallel safe
+as $$
+  select jsonb_build_object(
+    'id', id, 'name', name, 'nickname', nickname, 'description', description,
+    'length_mi', round(length_mi::numeric, 1), 'curve_count', curve_count,
+    'surface', surface, 'road_type', road_type,
+    'geometry', st_asgeojson(geom, 6)::jsonb,
+    'start_point', jsonb_build_array(st_x(st_startpoint(st_geometryn(geom, 1))),
+                                     st_y(st_startpoint(st_geometryn(geom, 1)))),
+    'end_point', jsonb_build_array(st_x(st_endpoint(st_geometryn(geom, st_numgeometries(geom)))),
+                                   st_y(st_endpoint(st_geometryn(geom, st_numgeometries(geom)))))
+  )
+  from scenic_roads where id = road_id;
+$$;
+
+create or replace function scenic_roads_geojson()
+returns jsonb
+language sql stable parallel safe
+as $$
+  select jsonb_build_object(
+    'type', 'FeatureCollection',
+    'features', coalesce(jsonb_agg(
+      jsonb_build_object(
+        'type', 'Feature',
+        'id', id,
+        'geometry', st_asgeojson(st_simplify(geom, 0.0001), 5)::jsonb,
+        'properties', jsonb_build_object(
+          'id', id, 'name', name, 'nickname', nickname,
+          'length_mi', round(length_mi::numeric, 1),
+          'curve_count', curve_count, 'road_type', road_type,
+          'surface', surface
+        )
+      )), '[]'::jsonb)
+  )
+  from scenic_roads where geom is not null;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- search_trails: name search across trails and scenic roads (trigram-ranked)
+-- ---------------------------------------------------------------------------
+create or replace function search_trails(q text, max_results integer default 20)
+returns jsonb
+language sql stable parallel safe
+as $$
+  select coalesce(jsonb_agg(row order by rank desc), '[]'::jsonb)
+  from (
+    select jsonb_build_object(
+        'kind', 'trail', 'id', id, 'name', name, 'surface', surface,
+        'difficulty', difficulty, 'length_mi', round(length_mi::numeric, 1),
+        'center', jsonb_build_array(st_x(st_centroid(geom)), st_y(st_centroid(geom))),
+        'bbox', jsonb_build_array(st_xmin(geom), st_ymin(geom), st_xmax(geom), st_ymax(geom))
+      ) as row,
+      similarity(name, q) + (case when source = 'mvum' then 0.2 else 0 end) as rank
+    from trails
+    where not hidden and name ilike '%' || q || '%'
+    union all
+    select jsonb_build_object(
+        'kind', 'scenic', 'id', id, 'name', name, 'nickname', nickname,
+        'length_mi', round(length_mi::numeric, 1), 'curve_count', curve_count,
+        'center', jsonb_build_array(st_x(st_centroid(geom)), st_y(st_centroid(geom))),
+        'bbox', jsonb_build_array(st_xmin(geom), st_ymin(geom), st_xmax(geom), st_ymax(geom))
+      ) as row,
+      similarity(coalesce(name,'') || ' ' || coalesce(nickname,''), q) + 0.5 as rank
+    from scenic_roads
+    where geom is not null
+      and (name ilike '%' || q || '%' or nickname ilike '%' || q || '%')
+    limit 200
+  ) hits
+  limit max_results;
+$$;
