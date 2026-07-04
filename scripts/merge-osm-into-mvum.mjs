@@ -25,7 +25,8 @@ const merged = await pool.query(`
     join trails o
       on o.source = 'osm'
      and m.source = 'mvum'
-     and st_dwithin(m.geom::geography, o.geom::geography, 30)
+     -- geometry-space prefilter (~33 m in degrees) so the GiST index is used
+     and st_dwithin(m.geom, o.geom, 0.0003)
     where st_length(st_intersection(
             o.geom, st_buffer(m.geom::geography, 30)::geometry)::geography)
           > 0.6 * st_length(o.geom::geography)
@@ -47,7 +48,7 @@ const hidden = await pool.query(`
   from trails m
   where o.source = 'osm' and o.hidden = false
     and m.source = 'mvum'
-    and st_dwithin(m.geom::geography, o.geom::geography, 30)
+    and st_dwithin(m.geom, o.geom, 0.0003)
     and st_length(st_intersection(
           o.geom, st_buffer(m.geom::geography, 30)::geometry)::geography)
         > 0.6 * st_length(o.geom::geography)

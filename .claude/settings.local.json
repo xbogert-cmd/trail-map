@@ -30,7 +30,8 @@
       "Bash(dig +short db.cwmbtqfcqurwmlyovzgd.supabase.co AAAA)",
       "Bash(nc -z -w 5 db.cwmbtqfcqurwmlyovzgd.supabase.co 5432)",
       "Bash(pkill -f ingest-osm.mjs)",
-      "Bash(git commit -m 'Batch OSM inserts \\(200 rows/statement\\) for ~20x ingestion throughput *)"
+      "Bash(git commit -m 'Batch OSM inserts \\(200 rows/statement\\) for ~20x ingestion throughput *)",
+      "Bash(git commit -m 'Use indexed geometry prefilter in source-merge spatial join *)"
     ]
   }
 }
