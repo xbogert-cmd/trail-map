@@ -6,11 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:setup": "node scripts/db-setup.mjs",
+    "ingest:mvum": "node scripts/ingest-mvum.mjs",
+    "ingest:osm": "node scripts/ingest-osm.mjs",
+    "merge:sources": "node scripts/merge-osm-into-mvum.mjs"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "maplibre-gl": "^5.24.0",
     "next": "16.2.10",
+    "pg": "^8.22.0",
     "react": "19.2.4",
     "react-dom": "19.2.4"
   },
