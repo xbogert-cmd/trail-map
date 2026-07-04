@@ -117,7 +117,9 @@ export default function TrailMap() {
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-slate-950">
-      <div ref={containerRef} className="absolute inset-0" />
+      {/* h-full/w-full (not just inset-0) because MapLibre's stylesheet
+          forces this element to position:relative, defeating inset sizing */}
+      <div ref={containerRef} className="absolute inset-0 h-full w-full" />
 
       {/* Floating brand badge */}
       <div className="pointer-events-none absolute left-3 top-3 z-10 select-none rounded-xl bg-slate-900/85 px-4 py-2 shadow-lg shadow-black/40 backdrop-blur">
